@@ -1,0 +1,7 @@
+services:
+  server:
+    build: .
+    network_mode: host
+    volumes:
+      - ./server-config.json:/etc/fiend/config.json:ro
+    restart: unless-stopped

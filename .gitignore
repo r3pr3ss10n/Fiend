@@ -1,0 +1,6 @@
+/target
+*.json
+*.bin
+*.json.gz
+.DS_Store
+profile.json*
