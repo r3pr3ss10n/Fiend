@@ -12,8 +12,20 @@ use std::time::Duration;
 
 use anyhow::{Result, anyhow};
 use tokio::signal;
-use tokio::signal::unix::SignalKind;
 use tracing::{error, info, warn};
+
+#[cfg(unix)]
+async fn sigterm() {
+    signal::unix::signal(signal::unix::SignalKind::terminate())
+        .expect("failed to register SIGTERM handler")
+        .recv()
+        .await;
+}
+
+#[cfg(not(unix))]
+async fn sigterm() {
+    std::future::pending::<()>().await;
+}
 
 fn main() {
     tracing_subscriber::fmt()
@@ -144,10 +156,6 @@ async fn run_server(config_path: &str) {
 
     info!("server starting on {}", cfg.bind);
 
-    #[cfg(unix)]
-    let mut sigterm =
-        signal::unix::signal(SignalKind::terminate()).expect("failed to register SIGTERM handler");
-
     tokio::select! {
         result = srv.listen(&cfg.bind, &secret, &domain, &psk) => {
             if let Err(e) = result {
@@ -157,7 +165,7 @@ async fn run_server(config_path: &str) {
         _ = signal::ctrl_c() => {
             info!("shutting down");
         }
-        _ = sigterm.recv() => {
+        _ = sigterm() => {
             info!("sigterm received");
         }
     }
@@ -214,16 +222,13 @@ async fn run_client(config_path: &str) {
             }
         }
 
-        let mut sigterm = signal::unix::signal(SignalKind::terminate())
-            .expect("failed to register SIGTERM handler");
-
         tokio::select! {
             _ = tokio::time::sleep(backoff) => {}
             _ = signal::ctrl_c() => {
                 info!("shutting down");
                 return;
             }
-            _ = sigterm.recv() => {
+            _ = sigterm() => {
                 info!("sigterm received");
                 return;
             }
@@ -270,9 +275,6 @@ async fn connect(cfg: &config::ClientConfig, secret: &[u8], psk: &[u8]) -> Resul
         }
     });
 
-    let mut sigterm =
-        signal::unix::signal(SignalKind::terminate()).map_err(|e| anyhow!("sigterm: {}", e))?;
-
     tokio::select! {
         _ = session.closed() => {
             warn!("session closed, reconnecting");
@@ -284,7 +286,7 @@ async fn connect(cfg: &config::ClientConfig, secret: &[u8], psk: &[u8]) -> Resul
             socks_handle.abort();
             Ok(())
         }
-        _ = sigterm.recv() => {
+        _ = sigterm() => {
             info!("sigterm received");
             socks_handle.abort();
             Ok(())
