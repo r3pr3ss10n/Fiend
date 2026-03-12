@@ -262,8 +262,8 @@ async fn connect(cfg: &config::ClientConfig, secret: &[u8], psk: &[u8]) -> Resul
 
     info!("authenticated");
 
-    let transport = transport::bridge(tls);
-    let session = mux::client(transport, auth::smux_config())?;
+    let (br, bw) = transport::bridge(tls);
+    let session = mux::client(br, bw, auth::smux_config())?;
 
     info!("tunnel established, socks5 on {}", cfg.listen);
 

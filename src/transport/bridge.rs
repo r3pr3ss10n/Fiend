@@ -20,30 +20,37 @@ fn padded_size(real_len: usize) -> usize {
     padded.max(real_len)
 }
 
-pub struct FakeTlsBridge {
+pub struct BridgeReadHalf {
     read_half: FakeTlsReadHalf,
-    write_half: FakeTlsWriteHalf,
     br_hdr: [u8; 8],
     br_hdr_filled: usize,
     br_real_rem: usize,
     br_skip_rem: usize,
+}
+
+pub struct BridgeWriteHalf {
+    write_half: FakeTlsWriteHalf,
     bw_input_len: usize,
 }
 
-pub fn bridge(tls: FakeTlsStream) -> FakeTlsBridge {
+pub fn bridge(tls: FakeTlsStream) -> (BridgeReadHalf, BridgeWriteHalf) {
     let (read_half, write_half) = tls.into_split();
-    FakeTlsBridge {
-        read_half,
-        write_half,
-        br_hdr: [0u8; 8],
-        br_hdr_filled: 0,
-        br_real_rem: 0,
-        br_skip_rem: 0,
-        bw_input_len: 0,
-    }
+    (
+        BridgeReadHalf {
+            read_half,
+            br_hdr: [0u8; 8],
+            br_hdr_filled: 0,
+            br_real_rem: 0,
+            br_skip_rem: 0,
+        },
+        BridgeWriteHalf {
+            write_half,
+            bw_input_len: 0,
+        },
+    )
 }
 
-impl AsyncRead for FakeTlsBridge {
+impl AsyncRead for BridgeReadHalf {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -145,7 +152,7 @@ impl AsyncRead for FakeTlsBridge {
     }
 }
 
-impl AsyncWrite for FakeTlsBridge {
+impl AsyncWrite for BridgeWriteHalf {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,

@@ -294,27 +294,29 @@ impl Session {
     }
 }
 
-pub fn client<T>(conn: T, config: Config) -> Result<Session>
+pub fn client<R, W>(reader: R, writer: W, config: Config) -> Result<Session>
 where
-    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    R: AsyncRead + Send + Unpin + 'static,
+    W: AsyncWrite + Send + Unpin + 'static,
 {
     config.verify()?;
-    Ok(new_session(config, conn, true))
+    Ok(new_session(config, reader, writer, true))
 }
 
-pub fn server<T>(conn: T, config: Config) -> Result<Session>
+pub fn server<R, W>(reader: R, writer: W, config: Config) -> Result<Session>
 where
-    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    R: AsyncRead + Send + Unpin + 'static,
+    W: AsyncWrite + Send + Unpin + 'static,
 {
     config.verify()?;
-    Ok(new_session(config, conn, false))
+    Ok(new_session(config, reader, writer, false))
 }
 
-fn new_session<T>(config: Config, conn: T, is_client: bool) -> Session
+fn new_session<R, W>(config: Config, reader: R, writer: W, is_client: bool) -> Session
 where
-    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    R: AsyncRead + Send + Unpin + 'static,
+    W: AsyncWrite + Send + Unpin + 'static,
 {
-    let (reader, writer) = tokio::io::split(conn);
     let (write_tx, write_rx) = mpsc::channel(SEND_QUEUE_SIZE);
     let (accept_tx, accept_rx) = mpsc::channel(DEFAULT_ACCEPT_BACKLOG);
 

@@ -109,8 +109,8 @@ async fn handle_conn(
 
     tracing::info!("[session] new from {}", peer);
 
-    let transport = transport::bridge(tls);
-    let session = mux::server(transport, auth::smux_config())?;
+    let (br, bw) = transport::bridge(tls);
+    let session = mux::server(br, bw, auth::smux_config())?;
     let srv = proxy::server::Server::new(session, proxy::protocol::COPY_BUF);
     srv.serve().await;
 

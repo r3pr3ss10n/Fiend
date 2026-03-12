@@ -3,6 +3,7 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 
 use anyhow::{Result, anyhow};
+use socket2::SockRef;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::Mutex;
@@ -54,6 +55,10 @@ pub async fn listen(addr: &str, session: Session) -> Result<()> {
 }
 
 async fn handle_client(mut stream: TcpStream, session: Session) -> Result<()> {
+    let _ = stream.set_nodelay(true);
+    let sock = SockRef::from(&stream);
+    let _ = sock.set_send_buffer_size(4 * 1024 * 1024);
+    let _ = sock.set_recv_buffer_size(4 * 1024 * 1024);
     let mut buf = [0u8; 258];
     stream.read_exact(&mut buf[..2]).await?;
     if buf[0] != SOCKS5_VER {
