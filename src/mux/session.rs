@@ -244,11 +244,30 @@ impl Session {
         let die = self.shared.die.wait();
         let read_err = self.shared.read_error_signal.wait();
         let write_err = self.shared.write_error_signal.wait();
-        tokio::pin!(die, read_err, write_err);
+        let proto_err = self.shared.proto_error_signal.wait();
+        tokio::pin!(die, read_err, write_err, proto_err);
         tokio::select! {
-            _ = die => {}
-            _ = read_err => {}
-            _ = write_err => {}
+            _ = die => {
+                tracing::warn!("session die: keepalive timeout");
+            }
+            _ = read_err => {
+                tracing::warn!(
+                    "session die: read error: {}",
+                    self.shared.read_error.get().map(String::as_str).unwrap_or("unknown")
+                );
+            }
+            _ = write_err => {
+                tracing::warn!(
+                    "session die: write error: {}",
+                    self.shared.write_error.get().map(String::as_str).unwrap_or("unknown")
+                );
+            }
+            _ = proto_err => {
+                tracing::warn!(
+                    "session die: proto error: {}",
+                    self.shared.proto_error.get().map(String::as_str).unwrap_or("unknown")
+                );
+            }
         }
     }
 

@@ -10,13 +10,14 @@ use super::disguise::tls::{FakeTlsReadHalf, FakeTlsStream, FakeTlsWriteHalf};
 const BRIDGE_FRAME_BUF: usize = 256 * 1024;
 
 fn padded_size(real_len: usize) -> usize {
-    match real_len {
+    let padded = match real_len {
         0..=64 => fastrand::usize(200..300),
         65..=256 => fastrand::usize(400..600),
         257..=1024 => fastrand::usize(1800..2200),
-        1025..=4096 => fastrand::usize(4000..4200),
+        1025..=4096 => fastrand::usize(4096..4300),
         _ => real_len,
-    }
+    };
+    padded.max(real_len)
 }
 
 pub struct FakeTlsBridge {
