@@ -629,9 +629,10 @@ fn handshake_terminator(secret: &[u8], tls_random: &[u8]) -> Vec<u8> {
 
 fn padded_terminator(secret: &[u8], tls_random: &[u8]) -> Vec<u8> {
     let hmac = handshake_terminator(secret, tls_random);
-    let mut padded = Vec::with_capacity(256);
+    let pad_len = fastrand::usize(100..750);
+    let mut padded = Vec::with_capacity(hmac.len() + pad_len);
     padded.extend_from_slice(&hmac);
-    let mut padding = vec![0u8; 256 - hmac.len()];
+    let mut padding = vec![0u8; pad_len];
     rand::rng().fill(&mut padding[..]);
     padded.extend_from_slice(&padding);
     padded

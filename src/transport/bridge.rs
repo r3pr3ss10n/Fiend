@@ -11,11 +11,13 @@ const BRIDGE_FRAME_BUF: usize = 256 * 1024;
 
 fn padded_size(real_len: usize) -> usize {
     let padded = match real_len {
-        0..=64 => fastrand::usize(200..300),
-        65..=256 => fastrand::usize(400..600),
-        257..=1024 => fastrand::usize(1800..2200),
-        1025..=4096 => fastrand::usize(4096..4300),
-        _ => real_len,
+        0..=64 => fastrand::usize(150..350),
+        65..=300 => fastrand::usize(350..700),
+        301..=600 => fastrand::usize(650..1300),
+        601..=1200 => fastrand::usize(1200..2500),
+        1201..=2400 => fastrand::usize(2400..4500),
+        2401..=4096 => fastrand::usize(4100..4500),
+        _ => real_len + fastrand::usize(50..450),
     };
     padded.max(real_len)
 }
